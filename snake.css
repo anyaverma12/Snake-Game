@@ -1,38 +1,4 @@
-body {
-    font-family: 'Courier New', Courier, monospace;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    background-color: #2c3e50;
-}
-.game-container {
-    text-align: center;
-}
-#scoreDisplay {
-    font-size: 2rem;
-    color: white;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
-#gameBoard {
-    background-color: white;
-    border: 5px solid #34495e;
-    border-radius: 5px;
-    box-shadow: 0px 0px 20px rgba(0,0,0,0.5);
-}
-#restartBtn {
-    display: block;
-    margin: 20px auto 0;
-    padding: 10px 20px;
-    font-size: 1.2rem;
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-#restartBtn:hover {
-    background-color: #c0392b;
-}
+#board{border: 3px solid; align-items: center;}
+#score{font-size: 100px;}
+#reset{font-size: medium; border: 3px solid; height: 50px; width: 100px; cursor: pointer; border-color: coral;}
+#center{text-align: center;}

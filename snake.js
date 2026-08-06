@@ -1,22 +1,18 @@
-const board = document.getElementById("gameBoard");
-const ctx = board.getContext("2d");
-const scoreText = document.getElementById("scoreVal");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
 const restartBtn = document.getElementById("restartBtn");
 
-const gameWidth = board.width;
-const gameHeight = board.height;
-const boardBackground = "white";
-const snakeColor = "lightgreen";
-const snakeBorder = "black";
-const foodColor = "red";
-const unitSize = 25; 
-
+const unitSize = 25; // Size of one block
+let score = 0;
 let running = false;
-let xVelocity = unitSize;
+let xVelocity = unitSize; // moving right by default
 let yVelocity = 0;
 let foodX;
 let foodY;
-let score = 0;
+let changingDirection = false;
+
+// The snake is an array of coordinates
 let snake = [
     {x: unitSize * 4, y: 0},
     {x: unitSize * 3, y: 0},
@@ -24,143 +20,139 @@ let snake = [
     {x: unitSize, y: 0},
     {x: 0, y: 0}
 ];
-let changingDirection = false;
 
 window.addEventListener("keydown", changeDirection);
 restartBtn.addEventListener("click", resetGame);
 
-gameStart();
+startGame();
 
-function gameStart() {
+function startGame() {
     running = true;
-    scoreText.textContent = score;
-    createFood();
+    scoreElement.textContent = score;
+    spawnFood();
     drawFood();
-    nextTick();
+    gameLoop();
 }
 
-function nextTick() {
+function gameLoop() {
     if (running) {
-        setTimeout(() => {
-            clearBoard();
+        setTimeout(function() {
+            clearCanvas();
             drawFood();
             moveSnake();
             drawSnake();
-            checkGameOver();
+            checkCollisions();
             changingDirection = false;
-            nextTick();
-        }, 100); 
+            gameLoop(); // call itself again
+        }, 100); // game speed is 100ms
     } else {
         displayGameOver();
     }
 }
 
-function clearBoard() {
-    ctx.fillStyle = boardBackground;
-    ctx.fillRect(0, 0, gameWidth, gameHeight);
+function clearCanvas() {
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function createFood() {
-    function randomFood(min, max) {
-        const randNum = Math.round((Math.random() * (max - min) + min) / unitSize) * unitSize;
-        return randNum;
-    }
-    foodX = randomFood(0, gameWidth - unitSize);
-    foodY = randomFood(0, gameHeight - unitSize);
+function spawnFood() {
+    // Pick a random number between 0 and the canvas width/height, but make sure it snaps to our 25px grid
+    foodX = Math.round((Math.random() * (canvas.width - unitSize)) / unitSize) * unitSize;
+    foodY = Math.round((Math.random() * (canvas.height - unitSize)) / unitSize) * unitSize;
 
-    // Prevent food from spawning on the snake
-    snake.forEach(function has_snake_eaten_food(part) {
-        const has_eaten = part.x === foodX && part.y === foodY;
-        if (has_eaten) createFood();
-    });
+    // Make sure food doesn't spawn on the snake's body
+    for (let i = 0; i < snake.length; i++) {
+        if (snake[i].x === foodX && snake[i].y === foodY) {
+            spawnFood(); // try again if it spawned on the snake
+        }
+    }
 }
 
 function drawFood() {
-    ctx.fillStyle = foodColor;
+    ctx.fillStyle = "red";
     ctx.fillRect(foodX, foodY, unitSize, unitSize);
 }
 
 function moveSnake() {
-    const head = {x: snake[0].x + xVelocity, y: snake[0].y + yVelocity};
-    snake.unshift(head);
+    // Create a new head object based on where it's currently moving
+    const newHead = {
+        x: snake[0].x + xVelocity,
+        y: snake[0].y + yVelocity
+    };
+    
+    // Add the new head to the front of the snake array
+    snake.unshift(newHead);
 
+    // If the new head is on the food, we ate it
     if (snake[0].x === foodX && snake[0].y === foodY) {
-        score += 1;
-        scoreText.textContent = score;
-        createFood();
+        score++;
+        scoreElement.textContent = score;
+        spawnFood();
     } else {
+        // If we didn't eat, remove the tail so it looks like we are moving
         snake.pop();
     }
 }
 
 function drawSnake() {
-    ctx.fillStyle = snakeColor;
-    ctx.strokeStyle = snakeBorder;
-    snake.forEach(snakePart => {
-        ctx.fillRect(snakePart.x, snakePart.y, unitSize, unitSize);
-        ctx.strokeRect(snakePart.x, snakePart.y, unitSize, unitSize);
-    });
+    ctx.fillStyle = "green";
+    ctx.strokeStyle = "black";
+    
+    for (let i = 0; i < snake.length; i++) {
+        ctx.fillRect(snake[i].x, snake[i].y, unitSize, unitSize);
+        ctx.strokeRect(snake[i].x, snake[i].y, unitSize, unitSize);
+    }
 }
 
 function changeDirection(event) {
-    if (changingDirection) return;
+    if (changingDirection) return; // prevent double key presses in one frame
 
-    const keyPressed = event.keyCode;
-    const LEFT = 37;
-    const UP = 38;
-    const RIGHT = 39;
-    const DOWN = 40;
+    const key = event.keyCode;
+    const LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40;
 
-    const goingUp = (yVelocity === -unitSize);
-    const goingDown = (yVelocity === unitSize);
-    const goingRight = (xVelocity === unitSize);
-    const goingLeft = (xVelocity === -unitSize);
+    // Check where we are currently going so we don't reverse into ourselves
+    const goingUp = yVelocity === -unitSize;
+    const goingDown = yVelocity === unitSize;
+    const goingRight = xVelocity === unitSize;
+    const goingLeft = xVelocity === -unitSize;
 
-    switch(true) {
-        case (keyPressed === LEFT && !goingRight):
-            xVelocity = -unitSize;
-            yVelocity = 0;
-            changingDirection = true;
-            break;
-        case (keyPressed === UP && !goingDown):
-            xVelocity = 0;
-            yVelocity = -unitSize;
-            changingDirection = true;
-            break;
-        case (keyPressed === RIGHT && !goingLeft):
-            xVelocity = unitSize;
-            yVelocity = 0;
-            changingDirection = true;
-            break;
-        case (keyPressed === DOWN && !goingUp):
-            xVelocity = 0;
-            yVelocity = unitSize;
-            changingDirection = true;
-            break;
+    if (key === LEFT && !goingRight) {
+        xVelocity = -unitSize;
+        yVelocity = 0;
+        changingDirection = true;
+    } else if (key === UP && !goingDown) {
+        xVelocity = 0;
+        yVelocity = -unitSize;
+        changingDirection = true;
+    } else if (key === RIGHT && !goingLeft) {
+        xVelocity = unitSize;
+        yVelocity = 0;
+        changingDirection = true;
+    } else if (key === DOWN && !goingUp) {
+        xVelocity = 0;
+        yVelocity = unitSize;
+        changingDirection = true;
     }
 }
 
-function checkGameOver() {
-    switch(true) {
-        case (snake[0].x < 0):
-        case (snake[0].x >= gameWidth):
-        case (snake[0].y < 0):
-        case (snake[0].y >= gameHeight):
-            running = false;
-            break;
+function checkCollisions() {
+    // Check if head hit the walls
+    if (snake[0].x < 0 || snake[0].x >= canvas.width || snake[0].y < 0 || snake[0].y >= canvas.height) {
+        running = false;
     }
     
-    for (let i = 1; i < snake.length; i+=1) {
+    // Check if head hit the body
+    for (let i = 1; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
             running = false;
         }
     }
 }
 
-function displayGameOver() {
+
+    function displayGameOver() {
     alert("Game Over!"); 
 }
-
 function resetGame() {
     score = 0;
     xVelocity = unitSize;
@@ -172,5 +164,5 @@ function resetGame() {
         {x: unitSize, y: 0},
         {x: 0, y: 0}
     ];
-    gameStart();
+    startGame();
 }
